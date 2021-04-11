@@ -7,7 +7,6 @@ from tqdm import tqdm
 from im2mesh import config, data
 from im2mesh.checkpoints import CheckpointIO
 
-
 parser = argparse.ArgumentParser(
     description='Evaluate mesh algorithms.'
 )
@@ -27,6 +26,7 @@ out_file_class = os.path.join(out_dir, 'eval.csv')
 
 # Dataset
 dataset = config.get_dataset('test', cfg, return_idx=True)
+# dataset = config.get_dataset('train', cfg, return_idx=True)
 model = config.get_model(cfg, device=device, dataset=dataset)
 
 checkpoint_io = CheckpointIO(out_dir, model=model)
@@ -47,9 +47,8 @@ print('Total number of parameters: %d' % nparameters)
 # Evaluate
 model.eval()
 
-eval_dicts = []   
+eval_dicts = []
 print('Evaluating networks...')
-
 
 test_loader = torch.utils.data.DataLoader(
     dataset, batch_size=1, shuffle=False,
@@ -68,7 +67,7 @@ for it, data in enumerate(tqdm(test_loader)):
         model_dict = dataset.get_model_dict(idx)
     except AttributeError:
         model_dict = {'model': str(idx), 'category': 'n/a'}
-    
+
     modelname = model_dict['model']
     category_id = model_dict['category']
 
@@ -81,12 +80,11 @@ for it, data in enumerate(tqdm(test_loader)):
         'idx': idx,
         'class id': category_id,
         'class name': category_name,
-        'modelname':modelname,
+        'modelname': modelname,
     }
     eval_dicts.append(eval_dict)
     eval_data = trainer.eval_step(data)
     eval_dict.update(eval_data)
-
 
 # Create pandas dataframe and save
 eval_df = pd.DataFrame(eval_dicts)

@@ -15,7 +15,7 @@ data:
   model_file: model.off
   watertight_file: model_watertight.off
   img_folder: img
-  img_size: 224 
+  img_size: 224
   img_with_camera: false
   img_augment: false
   n_views: 24
@@ -26,6 +26,7 @@ data:
   pointcloud_noise: 0.05
   voxels_file: 'model.binvox'
   with_transforms: false
+  objs_subsample: null
 model:
   decoder: simple
   encoder: resnet18
@@ -45,7 +46,7 @@ training:
   visualize_every: 2000
   checkpoint_every: 1000
   validate_every: 2000
-  backup_every: 100000
+  backup_every: 10000
   eval_sample: false
   model_selection_metric: loss
   model_selection_mode: minimize
@@ -53,7 +54,7 @@ test:
   threshold: 0.5
   eval_mesh: true
   eval_pointcloud: true
-  model_file: model_best.pt
+  model_file: model.pt #model_best.pt (update b/c no longer use val)
 generation:
   batch_size: 100000
   refinement_step: 0

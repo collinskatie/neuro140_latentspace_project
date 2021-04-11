@@ -20,6 +20,10 @@ parser.add_argument('--exit-after', type=int, default=-1,
                     help='Checkpoint and exit after specified number of seconds'
                          'with exit code 2.')
 
+# toggle use of validation set - for sample complexity, trying to overfit!
+parser.add_argument('--use_validation', action='store_true', default=False,
+                    help='Whether to include a validation set and monitor overfitting.')
+
 args = parser.parse_args()
 cfg = config.load_config(args.config, 'configs/default.yaml')
 is_cuda = (torch.cuda.is_available() and not args.no_cuda)
@@ -33,6 +37,8 @@ out_dir = cfg['training']['out_dir']
 batch_size = cfg['training']['batch_size']
 backup_every = cfg['training']['backup_every']
 exit_after = args.exit_after
+
+use_val = args.use_validation
 
 model_selection_metric = cfg['training']['model_selection_metric']
 if cfg['training']['model_selection_mode'] == 'maximize':
@@ -49,24 +55,30 @@ if not os.path.exists(out_dir):
 
 # Dataset
 train_dataset = config.get_dataset('train', cfg)
-val_dataset = config.get_dataset('val', cfg)
-
 train_loader = torch.utils.data.DataLoader(
     train_dataset, batch_size=batch_size, num_workers=4, shuffle=True,
     collate_fn=data.collate_remove_none,
     worker_init_fn=data.worker_init_fn)
 
-val_loader = torch.utils.data.DataLoader(
-    val_dataset, batch_size=10, num_workers=4, shuffle=False,
-    collate_fn=data.collate_remove_none,
-    worker_init_fn=data.worker_init_fn)
+if use_val:
+    val_dataset = config.get_dataset('val', cfg)
+    val_loader = torch.utils.data.DataLoader(
+        val_dataset, batch_size=10, num_workers=4, shuffle=False,
+        collate_fn=data.collate_remove_none,
+        worker_init_fn=data.worker_init_fn)
 
 
 # For visualizations
-vis_loader = torch.utils.data.DataLoader(
-    val_dataset, batch_size=12, shuffle=True,
-    collate_fn=data.collate_remove_none,
-    worker_init_fn=data.worker_init_fn)
+if use_val:
+    vis_loader = torch.utils.data.DataLoader(
+        val_dataset, batch_size=12, shuffle=True,
+        collate_fn=data.collate_remove_none,
+        worker_init_fn=data.worker_init_fn)
+else: # show the training dataset
+    vis_loader = torch.utils.data.DataLoader(
+        train_dataset, batch_size=12, shuffle=True,
+        collate_fn=data.collate_remove_none,
+        worker_init_fn=data.worker_init_fn)
 data_vis = next(iter(vis_loader))
 
 # Model
@@ -92,16 +104,9 @@ metric_val_best = load_dict.get(
 # TODO: remove, because shouldn't be necessary
 if metric_val_best == np.inf or metric_val_best == -np.inf:
     metric_val_best = -model_selection_sign * np.inf
-
-# TODO: remove this switch
-# metric_val_best = -model_selection_sign * np.inf
-
 print('Current best validation metric (%s): %.8f'
       % (model_selection_metric, metric_val_best))
 
-# TODO: reintroduce or remove scheduler?
-# scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=4000,
-#                                       gamma=0.1, last_epoch=epoch_it)
 logger = SummaryWriter(os.path.join(out_dir, 'logs'))
 
 # Shorthands
@@ -115,24 +120,33 @@ nparameters = sum(p.numel() for p in model.parameters())
 print(model)
 print('Total number of parameters: %d' % nparameters)
 
-while True:
+# terminate only by time out
+epoch_it = 0
+max_num_epochs = 100000000000
+while epoch_it < max_num_epochs:
     epoch_it += 1
 #     scheduler.step()
-
     for batch in train_loader:
         it += 1
-        loss = trainer.train_step(batch)
+        loss_dict = trainer.train_step(batch)
+        loss = loss_dict['loss'].item()
         logger.add_scalar('train/loss', loss, it)
+        logger.add_scalar('train/kl', loss_dict['kl'].item(), it)
+        logger.add_scalar('train/rec_error', loss_dict['rec_error'].item(), it)
 
         # Print output
         if print_every > 0 and (it % print_every) == 0:
             print('[Epoch %02d] it=%03d, loss=%.4f'
                   % (epoch_it, it, loss))
 
-        # Visualize output
+        # Visualize output (save to disk)
         if visualize_every > 0 and (it % visualize_every) == 0:
             print('Visualizing')
-            trainer.visualize(data_vis)
+            fig_data = trainer.visualize(data_vis, get_fig_handles=True)
+            if fig_data['ctxt'][0] is not None:
+                logger.add_image('ctxt', np.array(fig_data['ctxt']), it)
+            if fig_data['pred_voxels'] is not None:
+                logger.add_figure('pred_voxels', fig_data['pred_voxels'], it)
 
         # Save checkpoint
         if (checkpoint_every > 0 and (it % checkpoint_every) == 0):
@@ -146,7 +160,7 @@ while True:
             checkpoint_io.save('model_%d.pt' % it, epoch_it=epoch_it, it=it,
                                loss_val_best=metric_val_best)
         # Run validation
-        if validate_every > 0 and (it % validate_every) == 0:
+        if validate_every > 0 and (it % validate_every) == 0 and use_val:
             eval_dict = trainer.evaluate(val_loader)
             metric_val = eval_dict[model_selection_metric]
             print('Validation metric (%s): %.4f'
@@ -162,7 +176,7 @@ while True:
                                    loss_val_best=metric_val_best)
 
         # Exit if necessary
-        if exit_after > 0 and (time.time() - t0) >= exit_after:
+        if exit_after > 0 and (time.time() - t0) >= exit_after and not use_val:
             print('Time limit reached. Exiting.')
             checkpoint_io.save('model.pt', epoch_it=epoch_it, it=it,
                                loss_val_best=metric_val_best)

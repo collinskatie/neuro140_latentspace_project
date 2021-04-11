@@ -4,7 +4,6 @@ from im2mesh import data
 from im2mesh import onet, r2n2, psgn, pix2mesh, dmc
 from im2mesh import preprocess
 
-
 method_dict = {
     'onet': onet,
     'r2n2': r2n2,
@@ -18,7 +17,7 @@ method_dict = {
 def load_config(path, default_path=None):
     ''' Loads config file.
 
-    Args:  
+    Args:
         path (str): path to config file
         default_path (bool): whether to use default path
     '''
@@ -120,6 +119,7 @@ def get_dataset(mode, cfg, return_idx=False, return_category=False):
     dataset_type = cfg['data']['dataset']
     dataset_folder = cfg['data']['path']
     categories = cfg['data']['classes']
+    subsample_category = cfg['data']['objs_subsample']
 
     # Get split
     splits = {
@@ -150,6 +150,7 @@ def get_dataset(mode, cfg, return_idx=False, return_category=False):
             dataset_folder, fields,
             split=split,
             categories=categories,
+            subsample_category=subsample_category
         )
     elif dataset_type == 'kitti':
         dataset = data.KittiDataset(
@@ -170,7 +171,7 @@ def get_dataset(mode, cfg, return_idx=False, return_category=False):
         )
     else:
         raise ValueError('Invalid dataset "%s"' % cfg['data']['dataset'])
- 
+
     return dataset
 
 

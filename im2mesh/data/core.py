@@ -4,7 +4,6 @@ from torch.utils import data
 import numpy as np
 import yaml
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -37,7 +36,8 @@ class Shapes3dDataset(data.Dataset):
     '''
 
     def __init__(self, dataset_folder, fields, split=None,
-                 categories=None, no_except=True, transform=None):
+                 categories=None, no_except=True, transform=None,
+                 subsample_category=None):
         ''' Initialization of the the 3D shape dataset.
 
         Args:
@@ -53,6 +53,7 @@ class Shapes3dDataset(data.Dataset):
         self.fields = fields
         self.no_except = no_except
         self.transform = transform
+        self.subsample_category = subsample_category
 
         # If categories is None, use all subfolders
         if categories is None:
@@ -69,23 +70,30 @@ class Shapes3dDataset(data.Dataset):
         else:
             self.metadata = {
                 c: {'id': c, 'name': 'n/a'} for c in categories
-            } 
-        
-        # Set index
+            }
+
+            # Set index
         for c_idx, c in enumerate(categories):
             self.metadata[c]['idx'] = c_idx
 
         # Get all models
+        # UPDATE: allow for subsampling of models per category
         self.models = []
         for c_idx, c in enumerate(categories):
             subpath = os.path.join(dataset_folder, c)
             if not os.path.isdir(subpath):
                 logger.warning('Category %s does not exist in dataset.' % c)
 
+            split = 'train'
             split_file = os.path.join(subpath, split + '.lst')
             with open(split_file, 'r') as f:
                 models_c = f.read().split('\n')
-            
+
+            # ADDED
+            if subsample_category is not None:  # and split != "test": # TODO: check split to be sure test over all items (after check which example was used during training)
+                # keep only a subset of those models per class
+                if subsample_category < len(models_c): models_c = sorted(models_c[:subsample_category])
+
             self.models += [
                 {'category': c, 'model': m}
                 for m in models_c

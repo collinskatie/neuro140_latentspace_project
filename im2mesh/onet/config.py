@@ -12,7 +12,7 @@ def get_model(cfg, device=None, dataset=None, **kwargs):
     ''' Return the Occupancy Network model.
 
     Args:
-        cfg (dict): imported yaml config 
+        cfg (dict): imported yaml config
         device (device): pytorch device
         dataset (dataset): dataset
     '''
@@ -117,6 +117,12 @@ def get_prior_z(cfg, device, **kwargs):
         torch.zeros(z_dim, device=device),
         torch.ones(z_dim, device=device)
     )
+
+    # help from: https://pytorch.org/docs/stable/distributions.html
+    # num_cats = 4
+    # mix = dist.Categorical(torch.ones(num_cats,device=device))
+    # comp = dist.Normal(torch.zeros(z_dim, device=device), torch.ones(z_dim, device=device))
+    # p0_z = MixtureSameFamily(mix, comp) # gmm
 
     return p0_z
 

@@ -8,6 +8,7 @@ from im2mesh.common import (
 )
 from im2mesh.utils import visualize as vis
 from im2mesh.training import BaseTrainer
+import torchvision
 
 
 class Trainer(BaseTrainer):
@@ -45,10 +46,11 @@ class Trainer(BaseTrainer):
         '''
         self.model.train()
         self.optimizer.zero_grad()
-        loss = self.compute_loss(data)
+        loss_dict = self.compute_loss(data)
+        loss = loss_dict['loss']
         loss.backward()
         self.optimizer.step()
-        return loss.item()
+        return loss_dict#loss.item()
 
     def eval_step(self, data):
         ''' Performs an evaluation step.
@@ -114,7 +116,7 @@ class Trainer(BaseTrainer):
 
         return eval_dict
 
-    def visualize(self, data):
+    def visualize(self, data, get_fig_handles=False):
         ''' Performs a visualization step for the data.
 
         Args:
@@ -136,12 +138,19 @@ class Trainer(BaseTrainer):
         occ_hat = p_r.probs.view(batch_size, *shape)
         voxels_out = (occ_hat >= self.threshold).cpu().numpy()
 
+        fig_data = {'ctxt': [], 'pred_voxels': []}
+
+        # UPDATE SIZE OF CTXT images (max 4 dims - (B, _, _, _) - CHECK
+
         for i in trange(batch_size):
             input_img_path = os.path.join(self.vis_dir, '%03d_in.png' % i)
-            vis.visualize_data(
-                inputs[i].cpu(), self.input_type, input_img_path)
-            vis.visualize_voxels(
-                voxels_out[i], os.path.join(self.vis_dir, '%03d.png' % i))
+            input_figs = vis.visualize_data(
+            inputs[i].cpu(), self.input_type, input_img_path, get_figs=get_fig_handles)
+            fig_data['ctxt'].append(input_figs)
+            voxel_figs = vis.visualize_voxels(
+                voxels_out[i], os.path.join(self.vis_dir, '%03d.png' % i), get_figs=get_fig_handles)
+            fig_data['pred_voxels'].append(voxel_figs)
+        return fig_data
 
     def compute_loss(self, data):
         ''' Computes the loss.
@@ -155,6 +164,7 @@ class Trainer(BaseTrainer):
         inputs = data.get('inputs', torch.empty(p.size(0), 0)).to(device)
 
         kwargs = {}
+        loss_dict = {}
 
         c = self.model.encode_inputs(inputs)
         q_z = self.model.infer_z(p, occ, c, **kwargs)
@@ -164,10 +174,15 @@ class Trainer(BaseTrainer):
         kl = dist.kl_divergence(q_z, self.model.p0_z).sum(dim=-1)
         loss = kl.mean()
 
+        loss_dict["kl"] = loss
+
         # General points
         logits = self.model.decode(p, z, c, **kwargs).logits
         loss_i = F.binary_cross_entropy_with_logits(
             logits, occ, reduction='none')
-        loss = loss + loss_i.sum(-1).mean()
+        likelihood_loss = loss_i.sum(-1).mean()
+        loss_dict['rec_error'] = likelihood_loss
+        loss = loss + likelihood_loss
+        loss_dict['loss'] = loss
 
-        return loss
+        return loss_dict
