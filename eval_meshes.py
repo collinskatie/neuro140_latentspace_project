@@ -145,6 +145,7 @@ for it, data in enumerate(tqdm(test_loader)):
 # Create pandas dataframe and save
 eval_df = pd.DataFrame(eval_dicts)
 eval_df.set_index(['idx'], inplace=True)
+
 eval_df.to_pickle(out_file)
 
 # Create CSV file  with main statistics
