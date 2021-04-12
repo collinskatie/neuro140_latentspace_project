@@ -8,20 +8,19 @@ Write so that one can import this function: take in a .off file and output a .pn
     intermediary converts to a .obj
 '''
 
-# NOTE: uses directory hacks to shift loc for imports
-# improve module loading!
-
+from im2mesh.config import load_config
 import os
+import sys
+sys.path.insert(1, '/om/user/katiemc/occupancy_networks/model-converter-python/')
+import d3.model.tools as mt
+sys.path.insert(1, '/om/user/katiemc/occupancy_networks/obj2png/src/')
+import ObjFile
 
 def convert_off2obj(mesh_off_path, mesh_obj_path):
     # converts a .off file to .obj
     # uses model-converter-python repo (modified from convert.py)
-    os.chdir('/om/user/katiemc/occupancy_networks/model-converter-python')
-    import d3.model.tools as mt
-
     print('Converting %s to %s' % (mesh_off_path, mesh_obj_path))
     result = mt.convert(mesh_off_path, mesh_obj_path, up_conversion=None)
-
     # write out converted format
     with open(mesh_obj_path, 'w') as f:
             f.write(result)
@@ -29,13 +28,9 @@ def convert_off2obj(mesh_off_path, mesh_obj_path):
 def project_obj2png(obj_path, img_path, azimuth=0, elevation=0):
     # project 3D mesh file to img
     # uses obj2png repo (modified from obj2png.py)
-    os.chdir('/om/user/katiemc/occupancy_networks/obj2png')
-    import ObjFile
-
+    print('Converting %s to %s' % (obj_path, img_path))
     res = {'HIGH': 1200, 'MEDIUM': 600, 'LOW': 300}
     dpi = res['LOW'] # use low resolution for now
-
-    print('Converting %s to %s' % (obj_path, img_path))
     ob = ObjFile.ObjFile(obj_path)
     ob.Plot(img_path, elevation=elevation, azim=azimuth, dpi=dpi, scale=None, animate=None)
 
@@ -46,6 +41,35 @@ def convert_mesh2img(mesh_path, img_path, azimuth=0, elevation=0):
     convert_off2obj(mesh_path, intermediary)
     project_obj2png(intermediary, img_path, azimuth, elevation)
 
+if __name__ == '__main__':
+    # project and render images for pre-saved unconditional samples
+    # e.g., run automate_eval_gen first!
+
+    # run eval + generation for set of config files
+    cfg_dir = '/om/user/katiemc/occupancy_networks/configs/unconditional/sample_complexity'
+
+    # could also read in all config files from directory in future!
+    num_training_objs = [1,2,1000] # 100, 500, 4000
+    obj_types = ['chair'] # also airplanes (+ combo)
+
+    num_gen = 10 # num draws from unconditional prior
+
+    for obj_type in obj_types:
+        for num_objs in num_training_objs:
+            cfg_file = f'{cfg_dir}/{obj_type}_subset{num_objs}.yaml'
+            print("Processing: %s" % (cfg_file))
+            cfg = load_config(cfg_file, 'configs/default.yaml')
+            out_dir = cfg['training']['out_dir']
+            uncond_dir = f'{out_dir}/uncond_gen'
+            uncond_samples = [f'{uncond_dir}/{mesh_path}' for mesh_path in os.listdir(uncond_dir) if mesh_path[-4:] == '.off']
+            # convert mesh to .png img format
+            # render from diff views (azimuth, elevation)
+            views = [(0,0), (270,90), (270,40)]
+            for mesh_path in uncond_samples:
+                print("mesh path: ", mesh_path)
+                for view_idx, (azimuth, elevation) in enumerate(views):
+                    img_path = f'{mesh_path[:-4]}_{view_idx}.png' # replaces .off w/ view idx + png
+                    convert_mesh2img(mesh_path, img_path, azimuth, elevation)
 '''
 Original rendering notes for shell commands 
     and some helpful azimuth + elevation views

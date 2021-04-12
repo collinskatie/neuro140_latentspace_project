@@ -11,7 +11,7 @@ from im2mesh.checkpoints import CheckpointIO
 from im2mesh.config import load_config
 from im2mesh import config, data
 import os
-from render_mesh import convert_mesh2img
+# from render_mesh import convert_mesh2img
 
 def unconditional_samples(cfg_file, num_gen = 10):
     # generate samples from the prior for config
@@ -45,10 +45,10 @@ def unconditional_samples(cfg_file, num_gen = 10):
         mesh.export(mesh_path)
         # convert mesh to .png img format
         # render from diff views (azimuth, elevation)
-        views = [(0,0), (270,90), (270,40)]
-        for view_idx, (azimuth, elevation) in enumerate(views):
-            img_path = f'{mesh_path[:-4]}_{view_idx}.png' # replaces .off w/ view idx + png
-            convert_mesh2img(mesh_path, img_path, azimuth, elevation)
+        # views = [(0,0), (270,90), (270,40)]
+        # for view_idx, (azimuth, elevation) in enumerate(views):
+        #     img_path = f'{mesh_path[:-4]}_{view_idx}.png' # replaces .off w/ view idx + png
+        #     convert_mesh2img(mesh_path, img_path, azimuth, elevation)
 
 if __name__ == '__main__':
 
