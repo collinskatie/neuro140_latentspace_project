@@ -1,0 +1,6 @@
+[submodule "model-converter-python"]
+	path = model-converter-python
+	url = https://github.com/tforgione/model-converter-python.git
+[submodule "obj2png"]
+	path = obj2png
+	url = https://github.com/pclausen/obj2png.git
