@@ -19,6 +19,7 @@ from tqdm import tqdm
 import pandas as pd
 import trimesh
 import torch
+from render_mesh import convert_mesh2img
 
 def unconditional_samples(cfg_file, num_gen = 10):
     # generate samples from the prior for config
@@ -57,7 +58,7 @@ def unconditional_samples(cfg_file, num_gen = 10):
         #     img_path = f'{mesh_path[:-4]}_{view_idx}.png' # replaces .off w/ view idx + png
         #     convert_mesh2img(mesh_path, img_path, azimuth, elevation)
 
-def reconstruct_and_eval_samples(cfg_file, split="train"):
+def reconstruct_and_eval_samples(cfg_file, split="train", num_project=20):
     # combines generation and evaluation of meshes, based on split
     # relies heavily on existing generate.py and eval_mesh.py
 
@@ -167,6 +168,13 @@ def reconstruct_and_eval_samples(cfg_file, split="train"):
             # Write output
             mesh_out_file = os.path.join(mesh_dir, '%s.off' % modelname)
             mesh.export(mesh_out_file)
+            if it < num_project:
+                # convert mesh to .png img format
+                # render from diff views (azimuth, elevation)
+                views = [(0,0), (270,90), (270,40)]
+                for view_idx, (azimuth, elevation) in enumerate(views):
+                    img_path = f'{mesh_out_file[:-4]}_{view_idx}.png' # replaces .off w/ view idx + png
+                    convert_mesh2img(mesh_out_file, img_path, azimuth, elevation)
             out_file_dict['mesh'] = mesh_out_file
 
         # Copy to visualization directory for first vis_n_output samples
@@ -306,8 +314,10 @@ if __name__ == '__main__':
     cfg_dir = '/om/user/katiemc/occupancy_networks/configs/unconditional/sample_complexity'
 
     # could also read in all config files from directory in future!
-    num_training_objs = [1,2,1000] # 100, 500, 4000
+    num_training_objs = [1,2,100,1000,4000]
     obj_types = ['chair'] # also airplanes (+ combo)
+
+    reconstruction_eval_splits = ['train', 'test']
 
     num_gen = 10 # num draws from unconditional prior
 
@@ -315,5 +325,7 @@ if __name__ == '__main__':
         for num_objs in num_training_objs:
             cfg_file = f'{cfg_dir}/{obj_type}_subset{num_objs}.yaml'
             print("Processing: %s" % (cfg_file))
-            #unconditional_samples(cfg_file, num_gen=num_gen)
-            reconstruct_and_eval_samples(cfg_file, split="train")
+            unconditional_samples(cfg_file, num_gen=num_gen)
+            for split in reconstruction_eval_splits:
+                print("Evaluation on %s data" %(cfg_file))
+                reconstruct_and_eval_samples(cfg_file, split=split)
