@@ -107,13 +107,15 @@ def get_generator(model, cfg, device):
 
 
 # Datasets
-def get_dataset(mode, cfg, return_idx=False, return_category=False):
+def get_dataset(mode, cfg, return_idx=False, return_category=False, data_split=None):
     ''' Returns the dataset.
 
     Args:
         model (nn.Module): the model which is used
         cfg (dict): config dictionary
         return_idx (bool): whether to include an ID field
+        return_category: whether to return ShapeNet category (for analysis)
+        data_split: if None, use same split as passed in mode
     '''
     method = cfg['method']
     dataset_type = cfg['data']['dataset']
@@ -128,7 +130,10 @@ def get_dataset(mode, cfg, return_idx=False, return_category=False):
         'test': cfg['data']['test_split'],
     }
 
-    split = splits[mode]
+    if data_split is None: split = splits[mode]
+    else: split = data_split
+
+
 
     # Create dataset
     if dataset_type == 'Shapes3D':

@@ -54,4 +54,23 @@ z = model.get_z_from_prior((1,), sample=2048).to(device)
 mesh = generator.generate_from_latent(z, c)
 mesh.export("sample_mesh.off")
 
+'''
+Additional code notes for eval_mesh specifically
+'''
+
+import argparse
+# import numpy as np
+import os
+from tqdm import tqdm
+import pandas as pd
+import trimesh
+import torch
+from im2mesh import config, data
+from im2mesh.eval import MeshEvaluator
+from im2mesh.utils.io import load_pointcloud
+cfg_dir = "/om/user/katiemc/occupancy_networks/configs/unconditional/sample_complexity/"
+cfg_file = cfg_dir + "chair_subset1000.yaml"
+cfg = config.load_config(cfg_file, 'configs/default.yaml')
+is_cuda = torch.cuda.is_available()
+device = torch.device("cuda" if is_cuda else "cpu")
 

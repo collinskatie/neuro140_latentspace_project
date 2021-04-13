@@ -84,13 +84,15 @@ class Shapes3dDataset(data.Dataset):
             if not os.path.isdir(subpath):
                 logger.warning('Category %s does not exist in dataset.' % c)
 
-            split = 'train'
+            # split = 'train'
             split_file = os.path.join(subpath, split + '.lst')
             with open(split_file, 'r') as f:
                 models_c = f.read().split('\n')
 
             # ADDED
-            if subsample_category is not None:  # and split != "test": # TODO: check split to be sure test over all items (after check which example was used during training)
+            # run over all test objects at test time
+            # but maintain same training subset for training analysis
+            if subsample_category is not None and split != "test":
                 # keep only a subset of those models per class
                 if subsample_category < len(models_c): models_c = sorted(models_c[:subsample_category])
 
