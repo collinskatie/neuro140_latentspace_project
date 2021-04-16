@@ -49,7 +49,7 @@ if __name__ == '__main__':
     cfg_dir = '/om/user/katiemc/occupancy_networks/configs/unconditional/sample_complexity'
 
     # could also read in all config files from directory in future!
-    num_training_objs = [1,2,1000] # 100, 500, 4000
+    num_training_objs = [1,2,100, 1000,4000]
     obj_types = ['chair'] # also airplanes (+ combo)
 
     num_gen = 10 # num draws from unconditional prior
