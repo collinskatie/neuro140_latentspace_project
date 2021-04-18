@@ -16,7 +16,6 @@ method_dict = {
 # General config
 def load_config(path, default_path=None):
     ''' Loads config file.
-
     Args:
         path (str): path to config file
         default_path (bool): whether to use default path
@@ -46,11 +45,9 @@ def load_config(path, default_path=None):
 
 def update_recursive(dict1, dict2):
     ''' Update two config dictionaries recursively.
-
     Args:
         dict1 (dict): first dictionary to be updated
         dict2 (dict): second dictionary which entries should be used
-
     '''
     for k, v in dict2.items():
         if k not in dict1:
@@ -64,7 +61,6 @@ def update_recursive(dict1, dict2):
 # Models
 def get_model(cfg, device=None, dataset=None):
     ''' Returns the model instance.
-
     Args:
         cfg (dict): config dictionary
         device (device): pytorch device
@@ -79,7 +75,6 @@ def get_model(cfg, device=None, dataset=None):
 # Trainer
 def get_trainer(model, optimizer, cfg, device):
     ''' Returns a trainer instance.
-
     Args:
         model (nn.Module): the model which is used
         optimizer (optimizer): pytorch optimizer
@@ -95,7 +90,6 @@ def get_trainer(model, optimizer, cfg, device):
 # Generator for final mesh extraction
 def get_generator(model, cfg, device):
     ''' Returns a generator instance.
-
     Args:
         model (nn.Module): the model which is used
         cfg (dict): config dictionary
@@ -107,21 +101,19 @@ def get_generator(model, cfg, device):
 
 
 # Datasets
-def get_dataset(mode, cfg, return_idx=False, return_category=False, data_split=None):
+def get_dataset(mode, cfg, return_idx=False, return_category=False):
     ''' Returns the dataset.
-
     Args:
         model (nn.Module): the model which is used
         cfg (dict): config dictionary
         return_idx (bool): whether to include an ID field
-        return_category: whether to return ShapeNet category (for analysis)
-        data_split: if None, use same split as passed in mode
     '''
     method = cfg['method']
     dataset_type = cfg['data']['dataset']
     dataset_folder = cfg['data']['path']
     categories = cfg['data']['classes']
     subsample_category = cfg['data']['objs_subsample']
+    choice_models_pth=cfg['data']['subsample_pth']
 
     # Get split
     splits = {
@@ -130,10 +122,7 @@ def get_dataset(mode, cfg, return_idx=False, return_category=False, data_split=N
         'test': cfg['data']['test_split'],
     }
 
-    if data_split is None: split = splits[mode]
-    else: split = data_split
-
-
+    split = splits[mode]
 
     # Create dataset
     if dataset_type == 'Shapes3D':
@@ -155,7 +144,8 @@ def get_dataset(mode, cfg, return_idx=False, return_category=False, data_split=N
             dataset_folder, fields,
             split=split,
             categories=categories,
-            subsample_category=subsample_category
+            subsample_category=subsample_category,
+            choice_models_pth=choice_models_pth
         )
     elif dataset_type == 'kitti':
         dataset = data.KittiDataset(
@@ -182,7 +172,6 @@ def get_dataset(mode, cfg, return_idx=False, return_category=False, data_split=N
 
 def get_inputs_field(mode, cfg):
     ''' Returns the inputs fields.
-
     Args:
         mode (str): the mode which is used
         cfg (dict): config dictionary
@@ -238,7 +227,6 @@ def get_inputs_field(mode, cfg):
 
 def get_preprocessor(cfg, dataset=None, device=None):
     ''' Returns preprocessor instance.
-
     Args:
         cfg (dict): config dictionary
         dataset (dataset): dataset

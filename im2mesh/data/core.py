@@ -37,7 +37,7 @@ class Shapes3dDataset(data.Dataset):
 
     def __init__(self, dataset_folder, fields, split=None,
                  categories=None, no_except=True, transform=None,
-                 subsample_category=None):
+                 subsample_category=None, choice_models_pth=None):
         ''' Initialization of the the 3D shape dataset.
 
         Args:
@@ -92,9 +92,15 @@ class Shapes3dDataset(data.Dataset):
             # ADDED
             # run over all test objects at test time
             # but maintain same training subset for training analysis
-            if subsample_category is not None and split != "test":
-                # keep only a subset of those models per class
-                if subsample_category < len(models_c): models_c = sorted(models_c[:subsample_category])
+            if split != "test":
+                # use models from file if provided
+                if choice_models_pth is not None:
+                    models_c = list(np.load(choice_models_pth))
+                # otherwise, if blanket num objs to subsample is provided, choose w/o specificity
+                # but ensure same always used for later analysis
+                if subsample_category < len(models_c):
+                    # keep only a subset of those models per class
+                    models_c = sorted(models_c[:subsample_category])
 
             self.models += [
                 {'category': c, 'model': m}

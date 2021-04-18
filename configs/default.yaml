@@ -27,6 +27,7 @@ data:
   voxels_file: 'model.binvox'
   with_transforms: false
   objs_subsample: null
+  subsample_pth: null
 model:
   decoder: simple
   encoder: resnet18
