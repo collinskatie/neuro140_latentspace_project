@@ -228,7 +228,9 @@ def reconstruct_and_eval_samples(cfg_file, split="train", num_project=20):
     dataset = im2mesh.data.Shapes3dDataset(
         dataset_folder, fields,
         split, # have split match that of the evaluation completed above
-        categories=cfg['data']['classes'])
+        categories=cfg['data']['classes'],
+        subsample_category=cfg['data']['objs_subsample'],
+        choice_models_pth=cfg['data']['subsample_pth'])
 
     # Evaluator
     evaluator = MeshEvaluator(n_points=100000)
@@ -314,8 +316,11 @@ if __name__ == '__main__':
     cfg_dir = '/om/user/katiemc/occupancy_networks/configs/unconditional/sample_complexity'
 
     # could also read in all config files from directory in future!
-    num_training_objs = [1,2,100,1000,4000]
-    obj_types = ['chair'] # also airplanes (+ combo)
+    # num_training_objs = [1,2,100,1000,4000]
+    # obj_types = ['chair'] # also airplanes (+ combo)
+
+    num_training_objs = [1,2,100,500,1000]
+    obj_types = ['airplane'] # also airplanes (+ combo)
 
     reconstruction_eval_splits = ['train', 'test']
 
@@ -329,3 +334,25 @@ if __name__ == '__main__':
             for split in reconstruction_eval_splits:
                 print("Evaluation on %s data" %(cfg_file))
                 reconstruct_and_eval_samples(cfg_file, split=split)
+
+    # specific run w/ the 'repeat' runs of chairs 1, 2, 100 (to check variability)
+    num_training_objs = [1,2,100]
+    obj_types = ['chair'] # also airplanes (+ combo)
+    for obj_type in obj_types:
+        for num_objs in num_training_objs:
+            cfg_file = f'{cfg_dir}/{obj_type}_subset{num_objs}_repeat.yaml'
+            print("Processing: %s" % (cfg_file))
+            unconditional_samples(cfg_file, num_gen=5) # generate less samples b/c focus on reconstruction comparison
+            for split in reconstruction_eval_splits:
+                print("Evaluation on %s data" %(cfg_file))
+                reconstruct_and_eval_samples(cfg_file, split=split)
+
+    # just get out new, "best"/"worst" sub-objs
+    model_types = ["best20", "worst20"]
+    for model_type in model_types:
+        cfg_file = f'{cfg_dir}/chair_{model_type}.yaml'
+        print("Processing: %s" % (cfg_file))
+        unconditional_samples(cfg_file, num_gen=5) # generate less samples b/c focus on reconstruction comparison
+        for split in reconstruction_eval_splits:
+            print("Evaluation on %s data" %(cfg_file))
+            reconstruct_and_eval_samples(cfg_file, split=split)

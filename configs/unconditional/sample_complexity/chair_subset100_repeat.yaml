@@ -4,7 +4,7 @@ data:
   input_type: null
   path: data/ShapeNet
   points_subsample: 2048
-  subsample_pth: specific_obj_lists/chairs_best20.npy
+  subsample_pth: specific_obj_lists/chairs_rand100.npy
 model:
   encoder_latent: simple
   decoder: simple
@@ -12,8 +12,8 @@ model:
   c_dim: 0
   z_dim: 128
 training:
-  out_dir: out/unconditional/chairs_best20
-  batch_size: 8
+  out_dir: out/unconditional/chairs100_repeat
+  batch_size: 60
   eval_sample: true
   visualize_every: 5000
   validate_every: 5000

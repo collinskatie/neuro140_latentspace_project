@@ -4,7 +4,7 @@ data:
   input_type: null
   path: data/ShapeNet
   points_subsample: 2048
-  subsample_pth: chairs_worst20.npy
+  subsample_pth: specific_obj_lists/chairs_worst20.npy
 model:
   encoder_latent: simple
   decoder: simple

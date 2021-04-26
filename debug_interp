@@ -1,0 +1,74 @@
+# code to debug latent interpolation in interactive session
+
+import im2mesh
+import shutil
+import time
+from collections import defaultdict
+from im2mesh import config
+from im2mesh.config import load_config
+from im2mesh.checkpoints import CheckpointIO
+from im2mesh.eval import MeshEvaluator
+import os
+from tqdm import tqdm
+import pandas as pd
+import trimesh
+import torch
+from render_mesh import convert_mesh2img
+import numpy as np
+
+
+cfg_dir = '/om/user/katiemc/occupancy_networks/configs/unconditional/sample_complexity'
+obj_type = "chair"
+num_objs=100
+cfg_file = f'{cfg_dir}/{obj_type}_subset{num_objs}.yaml'
+cfg = load_config(cfg_file, 'configs/default.yaml')
+
+is_cuda = torch.cuda.is_available()
+device = torch.device("cuda" if is_cuda else "cpu")
+out_dir = cfg['training']['out_dir']
+
+split = "test"
+dataset = config.get_dataset('test', cfg, return_idx=True, data_split=split)
+
+model = config.get_model(cfg, device=device, dataset=dataset)
+checkpoint_io = CheckpointIO(out_dir, model=model)
+checkpoint_io.load(cfg['test']['model_file'])
+generator = config.get_generator(model, cfg, device=device)
+
+test_loader = torch.utils.data.DataLoader(
+    dataset, batch_size=1, num_workers=0, shuffle=False)
+
+print(len(test_loader))
+
+for i in test_loader: print(i)
+
+interp_objs = np.random.choice(range(len(test_loader)), 2, replace=False)
+print(interp_objs)
+
+# switch to test-time mode
+model.eval()
+
+if interp_objs is None:
+    # randomly select 2 objs to interpolate between
+    interp_objs = np.random.choice(range(len(test_loader)), 2, replace=False)
+
+# get z's from existing objs
+start_idx, end_idx = interp_objs
+z_start, c_start = extract_encoding(test_loader.dataset[start_idx], model, device)
+z_end, c_end = extract_encoding(test_loader.dataset[end_idx], model, device)
+
+# walk between codes and render
+# same specific latent weight w to specify fraction of latent from start vs. endpoint
+weights = np.linspace(0, 1, num_interp)
+for i, weight in enumerate(weights):
+    z = (weight * z_start) + ((1 - weight) * z_end)
+    c = (weight * c_start) + ((1 - weight) * c_end)
+    mesh = generator.generate_from_latent(z, c)
+    mesh_path = f'{interp_dir}/interp_{start_idx}_{end_idx}_{i}.off'  # save start and end idcs in code
+    mesh.export(mesh_path)
+    # convert mesh to .png img format
+    # render from diff views (azimuth, elevation)
+    views = [(0, 0), (270, 90), (270, 40)]
+    for view_idx, (azimuth, elevation) in enumerate(views):
+        img_path = f'{mesh_path[:-4]}_{view_idx}.png'  # replaces .off w/ view idx + png
+        convert_mesh2img(mesh_path, img_path, azimuth, elevation)
