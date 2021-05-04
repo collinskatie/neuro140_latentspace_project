@@ -58,7 +58,8 @@ def unconditional_samples(cfg_file, num_gen = 10):
         #     img_path = f'{mesh_path[:-4]}_{view_idx}.png' # replaces .off w/ view idx + png
         #     convert_mesh2img(mesh_path, img_path, azimuth, elevation)
 
-def reconstruct_and_eval_samples(cfg_file, split="train", num_project=20):
+def reconstruct_and_eval_samples(cfg_file, split="train", num_project=20,
+                                 ood_category=None):
     # combines generation and evaluation of meshes, based on split
     # relies heavily on existing generate.py and eval_mesh.py
 
@@ -68,6 +69,7 @@ def reconstruct_and_eval_samples(cfg_file, split="train", num_project=20):
 
     out_dir = cfg['training']['out_dir']
     generation_dir = os.path.join(out_dir, cfg['generation']['generation_dir'], split)
+    if ood_category is not None: generation_dir += "/ood_categories/"
     out_time_file = os.path.join(generation_dir, 'time_generation_full.pkl')
     out_time_file_class = os.path.join(generation_dir, 'time_generation.pkl')
 
@@ -75,7 +77,8 @@ def reconstruct_and_eval_samples(cfg_file, split="train", num_project=20):
     if vis_n_outputs is None: vis_n_outputs = -1
 
     # specify that dataset is for test-time, but vary the ShapeNet split
-    dataset = config.get_dataset('test', cfg, return_idx=True, data_split=split)
+    dataset = config.get_dataset('test', cfg, return_idx=True, data_split=split,
+                                 ood_category=ood_category)
     model = config.get_model(cfg, device=device, dataset=dataset)
     checkpoint_io = CheckpointIO(out_dir, model=model)
     checkpoint_io.load(cfg['test']['model_file'])
@@ -315,9 +318,9 @@ if __name__ == '__main__':
     # run eval + generation for set of config files
     cfg_dir = '/om/user/katiemc/occupancy_networks/configs/unconditional/sample_complexity'
 
-    # could also read in all config files from directory in future!
-    # num_training_objs = [1,2,100,1000,4000]
-    # obj_types = ['chair'] # also airplanes (+ combo)
+    #could also read in all config files from directory in future!
+    num_training_objs = [1,2,100,1000,4000]
+    obj_types = ['chair'] # also airplanes (+ combo)
 
     num_training_objs = [1,2,100,500,1000]
     obj_types = ['airplane'] # also airplanes (+ combo)
@@ -356,3 +359,26 @@ if __name__ == '__main__':
         for split in reconstruction_eval_splits:
             print("Evaluation on %s data" %(cfg_file))
             reconstruct_and_eval_samples(cfg_file, split=split)
+
+    #multi-obj model
+    model_types = ["airplane_chair_100per", "airplane_chair_500per"]
+    reconstruction_eval_splits = ['train', 'test']
+    for model_type in model_types:
+        cfg_file = f'{cfg_dir}/{model_type}.yaml'
+        print("Processing: %s" % (cfg_file))
+        unconditional_samples(cfg_file,
+                              num_gen=10)
+        for split in reconstruction_eval_splits:
+            print("Evaluation on %s data" % (cfg_file))
+            reconstruct_and_eval_samples(cfg_file, split=split)
+
+    # models generalized to ood categories
+    model_types = ["airplane_chair_100per", "chair_subset100", "airplane_subset100"]
+    reconstruction_eval_splits = ['test']
+    for model_type in model_types:
+        cfg_file = f'{cfg_dir}/{model_type}.yaml'
+        print("Processing: %s" % (cfg_file))
+        for split in reconstruction_eval_splits:
+            print("Evaluation on %s data" % (cfg_file))
+            reconstruct_and_eval_samples(cfg_file, split=split,
+                                         ood_category=['04256520'])#, '02958343'])

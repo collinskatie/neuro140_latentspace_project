@@ -48,6 +48,8 @@ if __name__ == '__main__':
     # run eval + generation for set of config files
     cfg_dir = '/om/user/katiemc/occupancy_networks/configs/unconditional/sample_complexity'
 
+    # this is not good code!!!! need to make cleaner + less repetitive!
+
     # could also read in all config files from directory in future!
     num_training_objs = [1,2,100, 1000,4000]
     obj_types = ['chair'] # also airplanes (+ combo)
@@ -70,6 +72,43 @@ if __name__ == '__main__':
                 for view_idx, (azimuth, elevation) in enumerate(views):
                     img_path = f'{mesh_path[:-4]}_{view_idx}.png' # replaces .off w/ view idx + png
                     convert_mesh2img(mesh_path, img_path, azimuth, elevation)
+    num_training_objs = [1,2,100,500,1000]
+    obj_types = ['airplane']
+
+    num_gen = 5 # num draws from unconditional prior
+
+    for obj_type in obj_types:
+        for num_objs in num_training_objs:
+            cfg_file = f'{cfg_dir}/{obj_type}_subset{num_objs}.yaml'
+            print("Processing: %s" % (cfg_file))
+            cfg = load_config(cfg_file, 'configs/default.yaml')
+            out_dir = cfg['training']['out_dir']
+            uncond_dir = f'{out_dir}/uncond_gen'
+            uncond_samples = [f'{uncond_dir}/{mesh_path}' for mesh_path in os.listdir(uncond_dir) if mesh_path[-4:] == '.off']
+            # convert mesh to .png img format
+            # render from diff views (azimuth, elevation)
+            views = [(0,0), (270,90), (270,40)]
+            for mesh_path in uncond_samples:
+                print("mesh path: ", mesh_path)
+                for view_idx, (azimuth, elevation) in enumerate(views):
+                    img_path = f'{mesh_path[:-4]}_{view_idx}.png' # replaces .off w/ view idx + png
+                    convert_mesh2img(mesh_path, img_path, azimuth, elevation)
+    #
+    num_gen = 10 # num draws from unconditional prior
+    cfg_file = f'{cfg_dir}/airplane_chair_100per.yaml'
+    print("Processing: %s" % (cfg_file))
+    cfg = load_config(cfg_file, 'configs/default.yaml')
+    out_dir = cfg['training']['out_dir']
+    uncond_dir = f'{out_dir}/uncond_gen'
+    uncond_samples = [f'{uncond_dir}/{mesh_path}' for mesh_path in os.listdir(uncond_dir) if mesh_path[-4:] == '.off']
+    # convert mesh to .png img format
+    # render from diff views (azimuth, elevation)
+    views = [(0,0), (270,90), (270,40)]
+    for mesh_path in uncond_samples:
+        print("mesh path: ", mesh_path)
+        for view_idx, (azimuth, elevation) in enumerate(views):
+            img_path = f'{mesh_path[:-4]}_{view_idx}.png' # replaces .off w/ view idx + png
+            convert_mesh2img(mesh_path, img_path, azimuth, elevation)
 '''
 Original rendering notes for shell commands 
     and some helpful azimuth + elevation views
