@@ -1,11 +1,11 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from torchvision.utils import save_image
+from torchvision.utils import save_image, make_grid
 import im2mesh.common as common
 
 
-def visualize_data(data, data_type, out_file):
+def visualize_data(data, data_type, out_file, get_figs=False):
     r''' Visualizes the data with regard to its type.
 
     Args:
@@ -17,17 +17,18 @@ def visualize_data(data, data_type, out_file):
         if data.dim() == 3:
             data = data.unsqueeze(0)
         save_image(data, out_file, nrow=4)
+        if get_figs: return data.cpu().detach().numpy()
     elif data_type == 'voxels':
-        visualize_voxels(data, out_file=out_file)
+        return visualize_voxels(data, out_file=out_file,get_figs=get_figs)
     elif data_type == 'pointcloud':
         visualize_pointcloud(data, out_file=out_file)
     elif data_type is None or data_type == 'idx':
-        pass
+        return None
     else:
         raise ValueError('Invalid data_type "%s"' % data_type)
 
 
-def visualize_voxels(voxels, out_file=None, show=False):
+def visualize_voxels(voxels, out_file=None, show=False, get_figs=False):
     r''' Visualizes voxel data.
 
     Args:
@@ -48,13 +49,14 @@ def visualize_voxels(voxels, out_file=None, show=False):
     ax.view_init(elev=30, azim=45)
     if out_file is not None:
         plt.savefig(out_file)
+        if get_figs: return fig
     if show:
         plt.show()
     plt.close(fig)
 
 
 def visualize_pointcloud(points, normals=None,
-                         out_file=None, show=False):
+                         out_file=None, show=False, get_figs=False):
     r''' Visualizes point cloud data.
 
     Args:
@@ -84,6 +86,7 @@ def visualize_pointcloud(points, normals=None,
     ax.view_init(elev=30, azim=45)
     if out_file is not None:
         plt.savefig(out_file)
+        if get_figs: return fig
     if show:
         plt.show()
     plt.close(fig)

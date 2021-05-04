@@ -37,7 +37,8 @@ class Shapes3dDataset(data.Dataset):
 
     def __init__(self, dataset_folder, fields, split=None,
                  categories=None, no_except=True, transform=None,
-                 subsample_category=None, choice_models_pth=None):
+                 subsample_category=None, choice_models_pth=None,
+                 ood_category=None):
         ''' Initialization of the the 3D shape dataset.
 
         Args:
@@ -48,15 +49,21 @@ class Shapes3dDataset(data.Dataset):
             no_except (bool): no exception
             transform (callable): transformation applied to data points
         '''
+
         # Attributes
         self.dataset_folder = dataset_folder
         self.fields = fields
         self.no_except = no_except
         self.transform = transform
         self.subsample_category = subsample_category
+        self.ood_category = ood_category # out of distribution category for optional generalization tests
 
+
+        # if provided completely unseen category - just use category (only an option at test time)
+        if ood_category is not None and split == "test":
+            categories = ood_category # assume ood_category is provided as a list [cat_name,...]
         # If categories is None, use all subfolders
-        if categories is None:
+        elif categories is None:
             categories = os.listdir(dataset_folder)
             categories = [c for c in categories
                           if os.path.isdir(os.path.join(dataset_folder, c))]
@@ -98,7 +105,7 @@ class Shapes3dDataset(data.Dataset):
                     models_c = list(np.load(choice_models_pth))
                 # otherwise, if blanket num objs to subsample is provided, choose w/o specificity
                 # but ensure same always used for later analysis
-                if subsample_category < len(models_c):
+                elif subsample_category is not None and subsample_category < len(models_c):
                     # keep only a subset of those models per class
                     models_c = sorted(models_c[:subsample_category])
 

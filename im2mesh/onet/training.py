@@ -13,7 +13,6 @@ import torchvision
 
 class Trainer(BaseTrainer):
     ''' Trainer object for the Occupancy Network.
-
     Args:
         model (nn.Module): Occupancy Network model
         optimizer (optimizer): pytorch optimizer object
@@ -22,7 +21,6 @@ class Trainer(BaseTrainer):
         vis_dir (str): visualization directory
         threshold (float): threshold value
         eval_sample (bool): whether to evaluate samples
-
     '''
 
     def __init__(self, model, optimizer, device=None, input_type='img',
@@ -40,7 +38,6 @@ class Trainer(BaseTrainer):
 
     def train_step(self, data):
         ''' Performs a training step.
-
         Args:
             data (dict): data dictionary
         '''
@@ -54,7 +51,6 @@ class Trainer(BaseTrainer):
 
     def eval_step(self, data):
         ''' Performs an evaluation step.
-
         Args:
             data (dict): data dictionary
         '''
@@ -118,7 +114,6 @@ class Trainer(BaseTrainer):
 
     def visualize(self, data, get_fig_handles=False):
         ''' Performs a visualization step for the data.
-
         Args:
             data (dict): data dictionary
         '''
@@ -154,7 +149,6 @@ class Trainer(BaseTrainer):
 
     def compute_loss(self, data):
         ''' Computes the loss.
-
         Args:
             data (dict): data dictionary
         '''
