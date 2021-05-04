@@ -8,7 +8,6 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output=/om/user/katiemc/complex_priors_logs/outputs/chairs_%A_%a.out
 #SBATCH --error=/om/user/katiemc/complex_priors_logs/outputs/chairs_%A_%a.err
-#SBATCH -p tenenbaum
 
 module load openmind/anaconda/3-2019.10; module load openmind/cuda/9.1;
 
